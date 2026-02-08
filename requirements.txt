@@ -1,3 +1,7 @@
 fastapi
 uvicorn
 python-multipart
+sentence-transformers
+numpy
+openai
+python-dotenv
