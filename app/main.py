@@ -1,3 +1,4 @@
+from fileinput import filename
 from fastapi import FastAPI, UploadFile, File, HTTPException
 import os
 import uuid
@@ -5,7 +6,8 @@ import json
 from sentence_transformers import SentenceTransformer
 from openai import OpenAI
 from dotenv import load_dotenv
-
+from app.events import inngest, DOCUMENT_UPLOADED
+import workflows.ingestion 
 
 
 
@@ -155,4 +157,38 @@ Question:
         "question": query,
         "answer": response.choices[0].message.content,
         "sources": [f for f, _ in scores]
+    }
+
+@app.post("/upload")
+async def upload_document(file: UploadFile = File(...)):
+    ...
+    return {"filename": filename}
+
+@app.post("/upload")
+async def upload_document(file: UploadFile = File(...)):
+    if not file.filename.endswith(".txt"):
+        raise HTTPException(status_code=400, detail="Only .txt files supported")
+
+    file_id = str(uuid.uuid4())
+    filename = f"{file_id}_{file.filename}"
+    file_path = os.path.join(UPLOAD_DIR, filename)
+
+    with open(file_path, "wb") as f:
+        f.write(await file.read())
+
+    # 🔔 Emit Inngest event
+    await inngest.send(
+        {
+            "name": DOCUMENT_UPLOADED,
+            "data": {
+                "filename": filename,
+                "path": file_path
+            }
+        }
+    )
+
+    return {
+        "message": "File uploaded",
+        "filename": filename,
+        "event": DOCUMENT_UPLOADED
     }
